@@ -25,9 +25,13 @@ class SpelexpertenScraper(ScraperBase):
         return item
 
     def search(self, game_name: str) -> list:
+        objects = []
         url = f"https://www.spelexperten.com/cgi-bin/ibutik/API.fcgi?funk=as_fil&chars={game_name}&retur=html&Sprak_Suffix=SV"
         r = httpx.get(url)
-        objects = []
+
+        if r.status_code != 200:
+            return objects
+
         soup = BeautifulSoup(r.content, 'html5lib')
 
         try:
