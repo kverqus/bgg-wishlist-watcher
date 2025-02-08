@@ -7,10 +7,12 @@ from scrapers.base import ScraperBase
 
 
 class AlphaspelScraper(ScraperBase):
+    store_name = 'Alphaspel'
+
     def _get_item(self, url: str) -> dict:
         url = f"https://alphaspel.se{url}"
         r = httpx.get(url)
-        item = {'price': 0, 'in_stock': False, 'url': url}
+        item = {'price': 0, 'availability': False, 'url': url}
 
         if r.status_code == 200:
             soup = BeautifulSoup(r.content, 'html5lib')
@@ -18,10 +20,10 @@ class AlphaspelScraper(ScraperBase):
             price = int(price.text.split()[0])
             order_container = soup.find(
                 'form', attrs={'class': 'main-product-add-to-cart'})
-            in_stock = bool(order_container.find(
+            availability = bool(order_container.find(
                 'a', attrs={'class': 'btn-success'}))
             item['price'] = price
-            item['in_stock'] = in_stock
+            item['availability'] = availability
 
         return item
 

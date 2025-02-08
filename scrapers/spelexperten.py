@@ -7,20 +7,22 @@ from scrapers.base import ScraperBase
 
 
 class SpelexpertenScraper(ScraperBase):
+    store_name = 'Spelexperten'
+
     def _get_item(self, url: str) -> dict:
         url = f"https://www.spelexperten.com{url}"
         r = httpx.get(url)
-        item = {'price': 0, 'in_stock': False, 'url': url}
+        item = {'price': 0, 'availability': False, 'url': url}
 
         if r.status_code == 200:
             soup = BeautifulSoup(r.content, 'html5lib')
             price = soup.find('span', attrs={'class': 'PrisBOLD'})
             price = int(price.text.split()[0])
             order_container = soup.find('div', attrs={'id': 'OrderFalt'})
-            in_stock = bool(order_container.find(
+            availability = bool(order_container.find(
                 'div', attrs={'class': 'buy-button'}))
             item['price'] = price
-            item['in_stock'] = in_stock
+            item['availability'] = availability
 
         return item
 
