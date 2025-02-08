@@ -15,7 +15,7 @@ class SpelexpertenScraper(ScraperBase):
         if r.status_code == 200:
             soup = BeautifulSoup(r.content, 'html5lib')
             price = soup.find('span', attrs={'class': 'PrisBOLD'})
-            price = int(price.text.split(' ')[0])
+            price = int(price.text.split()[0])
             order_container = soup.find('div', attrs={'id': 'OrderFalt'})
             in_stock = bool(order_container.find(
                 'div', attrs={'class': 'buy-button'}))
