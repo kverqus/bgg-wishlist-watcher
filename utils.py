@@ -1,10 +1,23 @@
-from rapidfuzz import process, fuzz
+import re
+
+from rapidfuzz import fuzz
 
 
-def find_best_matches(search_term, items):
-    names = [item['name'] for item in items]
+def find_best_matches(search_term, items, threshold=90):
+    # Remove anything inside parentheses for a cleaner 
+    # comparison (to avoid lower match percentage when 
+    # editions and language tags are included in parenthesis)
+    cleaned_query = re.sub(r'\s*\([^)]*\)', '', search_term).strip()
+    matched_items = []
 
-    matches = process.extract(search_term, names, scorer=fuzz.ratio)
-    max_score = max(matches, key=lambda x: x[1])[1]
+    for item in items:
+        # Remove anything inside parentheses for the item name
+        cleaned_name = re.sub(r'\s*\([^)]*\)', '', item['name']).strip()
 
-    return [items[names.index(match[0])] for match in matches if match[1] == max_score]
+        # Compare cleaned names with a fuzzy matching ratio
+        score = fuzz.ratio(cleaned_query.lower(), cleaned_name.lower())
+
+        if score >= threshold:
+            matched_items.append(item)
+
+    return matched_items
