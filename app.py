@@ -1,8 +1,8 @@
 import pkgutil
 import importlib
 import os
+import sys
 
-from sys import exit
 from scrapers.base import ScraperBase
 from wishlist import Wishlist
 from database import initialize_db, add_wishlist_item
@@ -26,9 +26,11 @@ def update_wishlist(wishlist: Wishlist):
 
 if __name__ == '__main__':
     username = os.environ['BGG_USERNAME'] if 'BGG_USERNAME' in os.environ else None
+    stores = os.environ['SCRAPERS'] if 'SCRAPERS' in os.environ else None
+    stores = [store.strip().lower() for store in stores.split(',')] if stores else None
 
     if not username:
-        exit(1)
+        sys.exit(1)
 
     initialize_db()
 
@@ -39,6 +41,9 @@ if __name__ == '__main__':
     scrapers = load_scrapers()
 
     for name, scraper in scrapers.items():
+        if stores and name.lower() not in stores:
+            continue
+
         for item in wishlist.items:
             result = scraper.safe_search(item.name)
             print(f"{name}: {result}")
