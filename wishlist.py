@@ -10,7 +10,7 @@ class Wishlist:
         self.url = f'https://boardgamegeek.com/xmlapi/collection/{username}?wishlist=1'
         self.items = []
 
-    def __parse_wishlist(self, wishlist: 'xml.etree.ElementTree.Element') -> Union[str, list]:
+    def __parse_wishlist(self, wishlist: 'ET.Element') -> Union[str, list]:
         root = ET.fromstring(wishlist)
 
         match root.tag:
@@ -51,5 +51,5 @@ class WishlistItem:
         self.price = 0
         self.store_url = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<WishlistItem {self.name}>"
