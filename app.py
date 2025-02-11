@@ -1,23 +1,10 @@
-import pkgutil
-import importlib
 import os
 import sys
 
-from scrapers.base import ScraperBase
+from scrapers import load_scrapers
 from wishlist import Wishlist
 from database import initialize_db, add_wishlist_item
 from logging_config import logger
-
-
-def load_scrapers() -> dict:
-    scrapers = {}
-    for finder, name, ispkg in pkgutil.iter_modules(["scrapers"]):
-        module = importlib.import_module(f"scrapers.{name}")
-        for attr in dir(module):
-            obj = getattr(module, attr)
-            if isinstance(obj, type) and issubclass(obj, ScraperBase) and obj != ScraperBase:
-                scrapers[name] = obj()
-    return scrapers
 
 
 def update_wishlist(wishlist: Wishlist):
@@ -40,12 +27,9 @@ if __name__ == '__main__':
     wishlist.get_wishlist()
     update_wishlist(wishlist)
 
-    scrapers = load_scrapers()
+    scrapers = load_scrapers(scrapers_to_load=stores)
 
     for name, scraper in scrapers.items():
-        if stores and name.lower() not in stores:
-            continue
-
         for item in wishlist.items:
             result = scraper.safe_search(item.name)
             print(f"{name}: {result}")
