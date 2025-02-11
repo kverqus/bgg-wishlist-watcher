@@ -1,9 +1,7 @@
 import sqlite3
-import logging
 
+from logging_config import logger
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 DB_NAME = "database.db"
 
@@ -145,7 +143,7 @@ def is_price_lower(game_id: int, new_price: float, availability: bool) -> bool:
         if result and result[0] is not None:
             previous_price = result[0]
             return new_price < previous_price
-        
+
         return False
 
 
@@ -154,7 +152,7 @@ def is_back_in_stock(game_id: int, availability: bool) -> bool:
 
     if availability != 1:
         return False
-    
+
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -183,10 +181,12 @@ def save_game_result(wishlist_name: str, store_name: str, game_name: str, price:
     game_id = get_game_id(store_id, game_name, url)
 
     if is_price_lower(game_id, price, availability):
-        logger.info(f"Price drop detected: {game_name} is now {price} at {store_name} ({url})")
+        logger.info(
+            f"Price drop detected: {game_name} is now {price} at {store_name} ({url})")
 
     if is_back_in_stock(game_id, availability):
-        logger.info(f"Back in stock: {game_name} is now back in stock at {store_name} ({url})")
+        logger.info(
+            f"Back in stock: {game_name} is now back in stock at {store_name} ({url})")
 
     insert_price(game_id, price, availability)  # Store price history
     link_wishlist_game(wishlist_id, game_id)  # Link wishlist and game

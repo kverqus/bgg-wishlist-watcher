@@ -6,6 +6,7 @@ import sys
 from scrapers.base import ScraperBase
 from wishlist import Wishlist
 from database import initialize_db, add_wishlist_item
+from logging_config import logger
 
 
 def load_scrapers() -> dict:
@@ -30,6 +31,7 @@ if __name__ == '__main__':
     stores = [store.strip().lower() for store in stores.split(',')] if stores else None
 
     if not username:
+        logger.info("BGG username not set")
         sys.exit(1)
 
     initialize_db()
