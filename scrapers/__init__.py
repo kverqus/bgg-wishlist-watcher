@@ -7,15 +7,18 @@ from logging_config import logger
 
 
 def load_scrapers() -> dict:
-    STORES = os.getenv('SCRAPERS', None)
-    STORES = [store.strip().lower() for store in STORES.split(',')] if STORES else None
+    enabled_scrapers = os.getenv('SCRAPERS', None)
+    enabled_scrapers = [store.strip().lower() for store in enabled_scrapers.split(',')] if enabled_scrapers else None
     scrapers = {}
 
-    for finder, name, ispkg in pkgutil.iter_modules(["scrapers"]):
-        if STORES and name.lower() not in STORES:
+    for finder, name, ispkg in pkgutil.iter_modules(['scrapers']):
+        if name == 'base':  # Ignore base class
             continue
 
-        module = importlib.import_module(f"scrapers.{name}")
+        if enabled_scrapers and name.lower() not in enabled_scrapers:
+            continue
+
+        module = importlib.import_module(f'scrapers.{name}')
 
         for attr in dir(module):
             obj = getattr(module, attr)
