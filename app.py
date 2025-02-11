@@ -13,9 +13,7 @@ def update_wishlist(wishlist: Wishlist):
 
 
 if __name__ == '__main__':
-    username = os.environ['BGG_USERNAME'] if 'BGG_USERNAME' in os.environ else None
-    stores = os.environ['SCRAPERS'] if 'SCRAPERS' in os.environ else None
-    stores = [store.strip().lower() for store in stores.split(',')] if stores else None
+    username = os.getenv('BGG_USERNAME', None)
 
     if not username:
         logger.info("BGG username not set")
@@ -27,7 +25,7 @@ if __name__ == '__main__':
     wishlist.get_wishlist()
     update_wishlist(wishlist)
 
-    scrapers = load_scrapers(scrapers_to_load=stores)
+    scrapers = load_scrapers()
 
     for name, scraper in scrapers.items():
         for item in wishlist.items:

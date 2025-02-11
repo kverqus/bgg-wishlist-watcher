@@ -1,16 +1,18 @@
 import pkgutil
 import importlib
+import os
 
-from typing import Union
 from .base import ScraperBase
 from logging_config import logger
 
 
-def load_scrapers(scrapers_to_load: Union[str, None]) -> dict:
+def load_scrapers() -> dict:
+    STORES = os.getenv('SCRAPERS', None)
+    STORES = [store.strip().lower() for store in STORES.split(',')] if STORES else None
     scrapers = {}
 
     for finder, name, ispkg in pkgutil.iter_modules(["scrapers"]):
-        if scrapers_to_load and name.lower() not in scrapers_to_load:
+        if STORES and name.lower() not in STORES:
             continue
 
         module = importlib.import_module(f"scrapers.{name}")

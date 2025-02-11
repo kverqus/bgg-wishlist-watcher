@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 from database import save_game_result
 from logging_config import logger
 
