@@ -5,7 +5,7 @@ from email.mime.text import MIMEText
 from .base import NotificationBase
 
 class EmailNotifier(NotificationBase):
-    def send(self, title, message):
+    def send(self, title: str, message: str) -> None:
         SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
         SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
         EMAIL_USERNAME = os.getenv('EMAIL_USERNAME', 'your_email@gmail.com')

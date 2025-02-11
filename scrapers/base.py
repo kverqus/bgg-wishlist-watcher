@@ -12,7 +12,7 @@ class ScraperBase(ABC):
         """Search for the board game and return price and availability."""
         pass
 
-    def safe_search(self, wishlist_name):
+    def safe_search(self, wishlist_name: str) -> list:
         """Wrapper to log execution, handle errors, and save results."""
         try:
             logger.info(f"Searching for game: {wishlist_name}")

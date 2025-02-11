@@ -6,7 +6,7 @@ from .base import NotificationBase
 from logging_config import logger
 
 
-def load_notifications():
+def load_notifications() -> dict:
     """Dynamically load notification modules based on environment variables."""
     enabled_notifications = os.getenv('ENABLED_NOTIFICATIONS', '')  # Example: "email,discord"
     enabled_notifications = [n.strip().lower() for n in enabled_notifications.split(',') if n.strip()]

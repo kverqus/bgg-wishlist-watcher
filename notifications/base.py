@@ -5,11 +5,11 @@ from logging_config import logger
 
 class NotificationBase(ABC):
     @abstractmethod
-    def send(self, title, message):
+    def send(self, title: str, message: str) -> None:
         """Send a notification with the given title and message."""
         pass
 
-    def safe_send(self, title, message):
+    def safe_send(self, title: str, message: str) -> None:
         """Wrapper to log execution and handle errors."""
         try:
             logger.info(f"Sending notification: {title} - {message}")
