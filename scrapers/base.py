@@ -1,12 +1,6 @@
-import logging
-
 from abc import ABC, abstractmethod
-
 from database import save_game_result
-
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from logging_config import logger
 
 
 class ScraperBase(ABC):
