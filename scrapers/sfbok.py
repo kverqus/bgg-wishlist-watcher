@@ -1,5 +1,4 @@
 import httpx
-import re
 
 from bs4 import BeautifulSoup
 
@@ -9,23 +8,6 @@ from scrapers.base import ScraperBase
 
 class SFBokScraper(ScraperBase):
     store_name = 'Science Fiction Bokhandeln'
-
-    def _get_item(self, url: str) -> dict:
-        url = f"https://www.sfbok.se{url}"
-        r = httpx.get(url)
-        item = {'price': 0, 'availability': False, 'url': url}
-
-        if r.status_code == 200:
-            soup = BeautifulSoup(r.content, 'html5lib')
-            price = soup.find('a', attrs={'class': 'add-to-cart'}).text
-            price = float(re.search(r'\d+', price).group())
-            order_container = soup.find('div', attrs={'class': 'volume-stock'})
-            availability = bool(order_container.find(
-                'span', attrs={'class': 'glyphicon-ok'}))
-            item['price'] = price
-            item['availability'] = availability
-
-        return item
 
     def search(self, game_name: str) -> list:
         objects = []
@@ -46,16 +28,18 @@ class SFBokScraper(ScraperBase):
             return objects
 
         for item in items:
-            a_container = item.find('h2')
-            a = a_container.find('a')
-            url = a['href']
+            a = item.find('h2')
+            url = a.find('a')['href']
+            descr = a.find('a').text.strip()
+            price = float(item.find('div', attrs={'class': 'price'}).text.split()[0])
+            availability = bool(item.find('li', attrs={'class': 'cart'}))
 
-            descr = a.text.strip()
-
-            item_ = self._get_item(url)
-            item_['name'] = descr
-
-            objects.append(item_)
+            objects.append({
+                'name': descr,
+                'price': price,
+                'availability': availability,
+                'url': f"https://www.sfbok.se{url}"
+            })
 
         objects = find_best_matches(game_name, objects)
 

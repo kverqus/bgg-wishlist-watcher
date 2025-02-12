@@ -9,24 +9,6 @@ from scrapers.base import ScraperBase
 class AlphaspelScraper(ScraperBase):
     store_name = 'Alphaspel'
 
-    def _get_item(self, url: str) -> dict:
-        url = f"https://alphaspel.se{url}"
-        r = httpx.get(url)
-        item = {'price': 0, 'availability': False, 'url': url}
-
-        if r.status_code == 200:
-            soup = BeautifulSoup(r.content, 'html5lib')
-            price = soup.find('div', attrs={'class': 'price'})
-            price = int(price.text.split()[0])
-            order_container = soup.find(
-                'form', attrs={'class': 'main-product-add-to-cart'})
-            availability = bool(order_container.find(
-                'a', attrs={'class': 'btn-success'}))
-            item['price'] = price
-            item['availability'] = availability
-
-        return item
-
     def search(self, game_name: str) -> list:
         objects = []
         url = f"https://alphaspel.se/search/?query={game_name}"
@@ -45,15 +27,18 @@ class AlphaspelScraper(ScraperBase):
             return objects
 
         for item in items:
-            a = item.find('a')['href']
+            url = item.find('a')['href']
+            price = float(item.find('div', attrs={'class': 'price'}).text.strip().split()[0])
+            availability = item.find('a', attrs={'class': 'add-to-cart'})
+            availability = bool('btn-success' in availability.get('class'))
+            descr = item.find('div', attrs={'class': 'product-name'}).text.strip()
 
-            if not a:
-                pass
-
-            item_ = self._get_item(a)
-            item_['name'] = item.find('div', attrs={'class': 'product-name'}).text.strip()
-
-            objects.append(item_)
+            objects.append({
+                'name': descr,
+                'price': price,
+                'availability': availability,
+                'url': f"https://alphaspel.se{url}"
+            })
 
         objects = find_best_matches(game_name, objects)
 
