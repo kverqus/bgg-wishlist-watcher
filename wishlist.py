@@ -2,7 +2,6 @@ import xml.etree.ElementTree as ET
 import httpx
 
 from time import sleep
-from typing import Union
 
 from logging_config import logger
 
@@ -12,7 +11,7 @@ class Wishlist:
         self.url = f'https://boardgamegeek.com/xmlapi/collection/{username}?wishlist=1'
         self.items = []
 
-    def __parse_wishlist(self, wishlist: 'ET.Element') -> Union[str, list]:
+    def __parse_wishlist(self, wishlist: 'ET.Element') -> list:
         root = ET.fromstring(wishlist)
 
         if 'errors' in root.tag:
