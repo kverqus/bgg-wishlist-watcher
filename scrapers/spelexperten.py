@@ -46,9 +46,6 @@ class SpelexpertenScraper(ScraperBase):
         for item in items:
             a = item.find('a')['href']
 
-            if not a:
-                pass
-
             descr = item.find('span', attrs={'class': 'Beskr'})
 
             for hidden in descr.find_all('span', attrs={'class': 'LSS_META'}):
