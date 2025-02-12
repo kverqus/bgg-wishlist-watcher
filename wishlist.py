@@ -1,8 +1,10 @@
+import xml.etree.ElementTree as ET
+import httpx
+
 from time import sleep
 from typing import Union
 
-import xml.etree.ElementTree as ET
-import httpx
+from logging_config import logger
 
 
 class Wishlist:
@@ -13,15 +15,13 @@ class Wishlist:
     def __parse_wishlist(self, wishlist: 'ET.Element') -> Union[str, list]:
         root = ET.fromstring(wishlist)
 
-        match root.tag:
-            case 'message':
-                print("Wishlist not generated")
-                sleep(1)
-                return self.__parse_wishlist(wishlist)
+        if 'errors' in root.tag:
+            errors = root.findall('error')
+            errors = ', '.join([error.find('message').text for error in errors])
 
-            case 'errors':
-                errors = root.findall('error')
-                return ', '.join([error.find('message').text for error in errors])
+            logger.warning(f"Errors while parsing wishlist: {errors}")
+
+            return self.items
 
         for item_ in root:
             item = WishlistItem(
@@ -32,16 +32,25 @@ class Wishlist:
 
         return self.items
 
-    def get_wishlist(self) -> bool:
+    def get_wishlist(self) -> None:
         r = httpx.get(self.url)
 
-        if r.status_code == 200:
-            self.__parse_wishlist(r.content)
+        if r.status_code == 202:
+            logger.info("Request has been queued by the BGG API")
+            sleep(1)
+            return self.get_wishlist()
 
-        if len(self.items) > 0:
-            return True
+        if r.status_code != 200:
+            logger.warning(f"Unable to fetch wishlist. Status code returned: {r.status_code}")
+            return
 
-        return False
+        self.__parse_wishlist(r.content)
+
+        if len(self.items) == 0:
+            logger.info("Wishlist is empty")
+            return
+
+        logger.info(f"{len(self.items)} items gathered from wishlist")
 
 
 class WishlistItem:
