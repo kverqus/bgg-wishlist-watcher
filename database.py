@@ -58,6 +58,35 @@ def initialize_db() -> None:
             )
         ''')
 
+        # Tables used by Discord bot
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                discord_id TEXT UNIQUE NOT NULL,
+                bgg_username TEXT UNIQUE NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_wishlist (
+                user_id INTEGER NOT NULL,
+                wishlist_id INTEGER NOT NULL,
+                PRIMARY KEY (user_id, wishlist_id),
+                FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+                FOREIGN KEY (wishlist_id) REFERENCES wishlist(id) ON DELETE CASCADE
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_scraper (
+                user_id INTEGER NOT NULL,
+                scraper_name TEXT NOT NULL,
+                PRIMARY KEY (user_id, scraper_name),
+                FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+            )
+        ''')
+
         conn.commit()
 
 
