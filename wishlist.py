@@ -8,6 +8,7 @@ from logging_config import logger
 
 class Wishlist:
     def __init__(self, username: str):
+        self.username = username
         self.url = f'https://boardgamegeek.com/xmlapi/collection/{username}?wishlist=1'
         self.items = []
 
@@ -16,7 +17,8 @@ class Wishlist:
 
         if 'errors' in root.tag:
             errors = root.findall('error')
-            errors = ', '.join([error.find('message').text for error in errors])
+            errors = ', '.join(
+                [error.find('message').text for error in errors])
 
             logger.warning(f"Errors while parsing wishlist: {errors}")
 
@@ -40,7 +42,8 @@ class Wishlist:
             return self.get_wishlist()
 
         if r.status_code != 200:
-            logger.warning(f"Unable to fetch wishlist. Status code returned: {r.status_code}")
+            logger.warning(
+                f"Unable to fetch wishlist. Status code returned: {r.status_code}")
             return
 
         self.__parse_wishlist(r.content)
@@ -49,7 +52,8 @@ class Wishlist:
             logger.info("Wishlist is empty")
             return
 
-        logger.info(f"{len(self.items)} items gathered from wishlist")
+        logger.info(
+            f"{len(self.items)} items gathered from wishlist for {self.username}")
 
 
 class WishlistItem:
