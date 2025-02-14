@@ -1,6 +1,9 @@
 import sqlite3
 
 from logging_config import logger
+from wishlist import Wishlist
+
+from typing import Union
 
 
 DB_NAME = "database.db"
@@ -219,3 +222,67 @@ def save_game_result(wishlist_name: str, store_name: str, game_name: str, price:
 
     insert_price(game_id, price, availability)  # Store price history
     link_wishlist_game(wishlist_id, game_id)  # Link wishlist and game
+
+# Functions used by Discord bot
+
+
+def register_user(discord_id: str, bgg_username: str) -> bool:
+    """Register a Discord user with their BGG username."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
+                "INSERT INTO user (discord_id, bgg_username) VALUES (?, ?)", (discord_id, bgg_username))
+            conn.commit()
+
+            return True
+
+        except sqlite3.IntegrityError:
+            return False
+
+
+def get_user_bgg_username(discord_id: str) -> str:
+    """Fetch the BGG username for a given Discord user ID."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT bgg_username FROM user WHERE discord_id = ?", (discord_id,))
+
+        result = cursor.fetchone()
+
+        return result[0] if result else None
+
+
+def add_wishlist_to_user(discord_id: str) -> Union[list, None]:
+    """Fetch wishlist from BGG and link it to the user."""
+    bgg_username = get_user_bgg_username(discord_id)
+
+    if not bgg_username:
+        return None  # User not registered
+
+    wishlist = Wishlist(username=bgg_username)
+    wishlist.get_wishlist()
+    wishlist_games = wishlist.items
+
+    if not wishlist_games:
+        return []
+
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+
+        for game in wishlist_games:
+            cursor.execute(
+                "INSERT OR IGNORE INTO wishlist (name) VALUES (?)", (game.name,))
+            cursor.execute("SELECT id FROM wishlist WHERE name = ?", (game.name,))
+
+            wishlist_id = cursor.fetchone()[0]
+
+            # Link item to user
+            cursor.execute(
+                "INSERT OR IGNORE INTO user_wishlist (user_id, wishlist_id) VALUES ((SELECT id FROM user WHERE discord_id = ?), ?)", (discord_id, wishlist_id))
+
+        conn.commit()
+
+    return wishlist_games
