@@ -1,5 +1,6 @@
 import os
 import pkgutil
+import importlib
 import discord
 
 from discord.ext import commands
@@ -16,6 +17,7 @@ def start_discord_bot() -> None:
 
     intents = discord.Intents.default()
     intents.message_content = True
+    intents.members = True
 
     bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -23,6 +25,7 @@ def start_discord_bot() -> None:
     async def on_ready():
         logger.info(f"User: {bot.user} (ID: {bot.user.id})")
 
+        # Dynamically load commands
         for finder, name, ispkg in pkgutil.iter_modules(['bot/commands']):
             module_name = f"bot.commands.{name}"
 
@@ -32,5 +35,19 @@ def start_discord_bot() -> None:
 
             except Exception as e:
                 logger.error(f"Failed to load {module_name}: {e}")
+
+        # Dynamically load tasks
+        for finder, name, ispkg in pkgutil.iter_modules(['bot/tasks']):
+            module_name = f"bot.tasks.{name}"
+
+            try:
+                module = importlib.import_module(module_name)
+
+                if hasattr(module, 'setup'):
+                    module.setup(bot)
+                    logger.info(f"Loaded task module: {module_name}")
+
+            except Exception as e:
+                logger.error(f"Failed to load task module {module_name}: {e}")
 
     bot.run(bot_token)
