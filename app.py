@@ -19,6 +19,8 @@ if __name__ == '__main__':
 
     initialize_db()
 
+    scrapers = load_scrapers()
+
     if run_as_bot:
         if not os.getenv('BOT_TOKEN'):
             logger.warning("Discord bot token not set")
@@ -35,8 +37,6 @@ if __name__ == '__main__':
         wishlist = Wishlist(username=username)
         wishlist.get_wishlist()
         update_wishlist(wishlist)
-
-        scrapers = load_scrapers()
 
         for name, scraper in scrapers.items():
             for item in wishlist.items:

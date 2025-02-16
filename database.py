@@ -61,6 +61,14 @@ def initialize_db() -> None:
             )
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS scraper (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        ''')
+
         # Tables used by Discord bot
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user (
@@ -84,9 +92,10 @@ def initialize_db() -> None:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_scraper (
                 user_id INTEGER NOT NULL,
-                scraper_name TEXT NOT NULL,
-                PRIMARY KEY (user_id, scraper_name),
-                FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+                scraper_id INTEGER NOT NULL,
+                PRIMARY KEY (user_id, scraper_id),
+                FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+                FOREIGN KEY (scraper_id) REFERENCES scraper(id) ON DELETE CASCADE
             )
         ''')
 
@@ -223,7 +232,42 @@ def save_game_result(wishlist_name: str, store_name: str, game_name: str, price:
     insert_price(game_id, price, availability)  # Store price history
     link_wishlist_game(wishlist_id, game_id)  # Link wishlist and game
 
+
 # Functions used by Discord bot
+
+
+def add_scraper_to_db(scraper_name: str) -> None:
+    """Ensure the scraper exists in the database."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "INSERT OR IGNORE INTO scraper (name) VALUES (?)", (scraper_name,))
+            conn.commit()
+
+            logger.info(f"Scraper '{scraper_name}' added to database.")
+
+        except sqlite3.DatabaseError as e:
+            logger.error(
+                f"Failed to insert scraper '{scraper_name}' into database: {e}")
+
+
+def remove_obsolete_scrapers(active_scrapers: set) -> None:
+    """Remove scrapers from the database that are no longer available."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM scraper")
+        db_scrapers = {row[0] for row in cursor.fetchall()}
+
+        obsolete_scrapers = db_scrapers - active_scrapers
+
+        if obsolete_scrapers:
+            cursor.executemany("DELETE FROM scraper WHERE name = ?", [
+                               (name,) for name in obsolete_scrapers])
+            conn.commit()
+
+            logger.info(
+                f"Removed obsolete scrapers from database: {', '.join(obsolete_scrapers)}")
 
 
 def register_user(discord_id: str, bgg_username: str) -> bool:
@@ -275,7 +319,8 @@ def add_wishlist_to_user(discord_id: str) -> Union[list, None]:
         for game in wishlist_games:
             cursor.execute(
                 "INSERT OR IGNORE INTO wishlist (name) VALUES (?)", (game.name,))
-            cursor.execute("SELECT id FROM wishlist WHERE name = ?", (game.name,))
+            cursor.execute(
+                "SELECT id FROM wishlist WHERE name = ?", (game.name,))
 
             wishlist_id = cursor.fetchone()[0]
 
@@ -286,3 +331,62 @@ def add_wishlist_to_user(discord_id: str) -> Union[list, None]:
         conn.commit()
 
     return wishlist_games
+
+
+def get_available_scrapers() -> list[str]:
+    """Retrieve a list of all available scrapers from the database."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT name FROM scraper")
+
+        return [row[0] for row in cursor.fetchall()]
+
+
+def add_scraper_for_user(discord_id: str, scraper_name: str) -> bool:
+    """Add a scraper to the user's configured scrapers."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                INSERT INTO user_scraper (user_id, scraper_id)
+                VALUES ((SELECT id FROM user WHERE discord_id = ?), (SELECT id FROM scraper WHERE name = ?))
+            """, (discord_id, scraper_name))
+            conn.commit()
+
+            return True
+
+        except sqlite3.IntegrityError:
+            return False  # Scraper already exists for this user
+
+
+def disable_scraper_for_user(discord_id: int, scraper_name: str) -> bool:
+    """Disable a specific scraper for a user."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT id FROM scraper WHERE name = ?", (scraper_name,))
+        scraper = cursor.fetchone()
+
+        if not scraper:
+            return False
+
+        scraper_id = scraper[0]
+
+        # Remove the user's association with this scraper
+        cursor.execute("DELETE FROM user_scraper WHERE user_id = (SELECT id FROM user WHERE discord_id = ?) AND scraper_id = ?", (discord_id, scraper_id))
+        conn.commit()
+        return True
+
+
+def get_user_scrapers(discord_id: str) -> list[str]:
+    """Retrieve a list of scrapers configured for the user."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT s.name FROM scraper s
+            JOIN user_scraper us ON s.id = us.scraper_id
+            WHERE us.user_id = (SELECT id FROM user WHERE discord_id = ?)
+        """, (discord_id,))
+
+        return [row[0] for row in cursor.fetchall()]
