@@ -3,14 +3,10 @@ import sys
 
 from scrapers import load_scrapers
 from wishlist import Wishlist
-from database import initialize_db, add_wishlist_item
+from database import initialize_db
+from utils import update_wishlist
 from logging_config import logger
 from bot import start_discord_bot
-
-
-def update_wishlist(wishlist: Wishlist):
-    for item in wishlist.items:
-        add_wishlist_item(item.name)
 
 
 if __name__ == '__main__':

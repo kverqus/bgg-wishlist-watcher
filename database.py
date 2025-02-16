@@ -286,6 +286,18 @@ def register_user(discord_id: str, bgg_username: str) -> bool:
             return False
 
 
+def get_all_users() -> Union[list, None]:
+    """Fetch all registered users."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT discord_id FROM user")
+
+        result = cursor.fetchall()
+
+    return [row[0] for row in result] if result else None
+
+
 def get_user_bgg_username(discord_id: str) -> str:
     """Fetch the BGG username for a given Discord user ID."""
     with sqlite3.connect(DB_NAME) as conn:
@@ -365,7 +377,8 @@ def disable_scraper_for_user(discord_id: int, scraper_name: str) -> bool:
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
 
-        cursor.execute("SELECT id FROM scraper WHERE name = ?", (scraper_name,))
+        cursor.execute("SELECT id FROM scraper WHERE name = ?",
+                       (scraper_name,))
         scraper = cursor.fetchone()
 
         if not scraper:
@@ -374,7 +387,8 @@ def disable_scraper_for_user(discord_id: int, scraper_name: str) -> bool:
         scraper_id = scraper[0]
 
         # Remove the user's association with this scraper
-        cursor.execute("DELETE FROM user_scraper WHERE user_id = (SELECT id FROM user WHERE discord_id = ?) AND scraper_id = ?", (discord_id, scraper_id))
+        cursor.execute(
+            "DELETE FROM user_scraper WHERE user_id = (SELECT id FROM user WHERE discord_id = ?) AND scraper_id = ?", (discord_id, scraper_id))
         conn.commit()
         return True
 

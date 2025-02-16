@@ -2,6 +2,8 @@ import re
 
 from rapidfuzz import fuzz
 
+from database import add_wishlist_item
+
 
 def find_best_matches(search_term, items, threshold=90):
     # Remove anything inside parentheses for a cleaner 
@@ -21,3 +23,8 @@ def find_best_matches(search_term, items, threshold=90):
             matched_items.append(item)
 
     return matched_items
+
+
+def update_wishlist(wishlist: 'Wishlist'):
+    for item in wishlist.items:
+        add_wishlist_item(item.name)
