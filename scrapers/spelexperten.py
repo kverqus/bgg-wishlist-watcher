@@ -9,26 +9,9 @@ from scrapers.base import ScraperBase
 class SpelexpertenScraper(ScraperBase):
     store_name = 'Spelexperten'
 
-    def _get_item(self, url: str) -> dict:
-        url = f"https://www.spelexperten.com{url}"
-        r = httpx.get(url)
-        item = {'price': 0, 'availability': False, 'url': url}
-
-        if r.status_code == 200:
-            soup = BeautifulSoup(r.content, 'html5lib')
-            price = soup.find('span', attrs={'class': 'PrisBOLD'})
-            price = int(price.text.split()[0])
-            order_container = soup.find('div', attrs={'id': 'OrderFalt'})
-            availability = bool(order_container.find(
-                'div', attrs={'class': 'buy-button'}))
-            item['price'] = price
-            item['availability'] = availability
-
-        return item
-
     def search(self, game_name: str) -> list:
         objects = []
-        url = f"https://www.spelexperten.com/cgi-bin/ibutik/API.fcgi?funk=as_fil&chars={game_name}&retur=html&Sprak_Suffix=SV"
+        url = f"https://www.spelexperten.com/cgi-bin/ibutik/AIR_ibutik.fcgi?funk=gor_sokning&AvanceradSokning=N&artnr=&varum=&artgrp=&Sprak_Suffix=SV&term={game_name}"
         r = httpx.get(url)
 
         if r.status_code != 200:
@@ -37,25 +20,28 @@ class SpelexpertenScraper(ScraperBase):
         soup = BeautifulSoup(r.content, 'html5lib')
 
         try:
-            container = soup.find('ul', attrs={'class': 'LSS_Artiklar'})
-            items = container.find_all('li')
+            container = soup.find(
+                'div', attrs={'class': 'search-articles-wrapper'})
+            items = container.find_all('div', attrs={'class': 'PT_Wrapper'})
 
         except AttributeError:
             return objects
 
         for item in items:
-            a = item.find('a')['href']
+            a = item.find('a')
+            url = a['href']
+            descr = a['aria-label']
+            price = item.find('span', attrs={'class': 'PT_PrisNormal'})
+            price = float(price.text.split()[0])
+            availability = bool(
+                item.find('div', attrs={'class': 'buy-button'}))
 
-            descr = item.find('span', attrs={'class': 'Beskr'})
-
-            for hidden in descr.find_all('span', attrs={'class': 'LSS_META'}):
-                hidden.extract()
-
-            descr = descr.text.strip()
-            item_ = self._get_item(a)
-            item_['name'] = descr
-
-            objects.append(item_)
+            objects.append({
+                'name': descr,
+                'price': price,
+                'availability': availability,
+                'url': f"https://www.spelexperten.com{url}"
+            })
 
         objects = find_best_matches(game_name, objects)
 
