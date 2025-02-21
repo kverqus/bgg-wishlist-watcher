@@ -18,4 +18,3 @@ if __name__ == '__main__':
 
     logger.info("Starting Discord bot")
     start_discord_bot()
-
