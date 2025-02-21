@@ -9,10 +9,12 @@ from scrapers.base import ScraperBase
 class WorldOfBoardgamesScraper(ScraperBase):
     store_name = 'WorldofBoardGames'
 
-    def search(self, game_name: str) -> list:
+    async def search(self, game_name: str) -> list:
         objects = []
         url = f"https://www.worldofboardgames.com/sok/{game_name}"
-        r = httpx.get(url)
+
+        async with httpx.AsyncClient() as client:
+            r = await client.get(url)
 
         if r.status_code != 200:
             return objects

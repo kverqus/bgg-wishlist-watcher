@@ -9,10 +9,12 @@ from scrapers.base import ScraperBase
 class SFBokScraper(ScraperBase):
     store_name = 'Science Fiction Bokhandeln'
 
-    def search(self, game_name: str) -> list:
+    async def search(self, game_name: str) -> list:
         objects = []
         url = f"https://www.sfbok.se/search?keys={game_name}&product_type_id=304_305_306_309_310_301_303_312_308_307_318_320_313_321_302_319"
-        r = httpx.get(url)
+
+        async with httpx.AsyncClient() as client:
+            r = await client.get(url)
 
         if r.status_code != 200:
             return objects

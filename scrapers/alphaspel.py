@@ -9,10 +9,12 @@ from scrapers.base import ScraperBase
 class AlphaspelScraper(ScraperBase):
     store_name = 'Alphaspel'
 
-    def search(self, game_name: str) -> list:
+    async def search(self, game_name: str) -> list:
         objects = []
         url = f"https://alphaspel.se/search/?query={game_name}"
-        r = httpx.get(url)
+
+        async with httpx.AsyncClient() as client:
+            r = await client.get(url)
 
         if r.status_code != 200:
             return objects
@@ -31,10 +33,13 @@ class AlphaspelScraper(ScraperBase):
             price = float(item.find('div', attrs={'class': 'price'}).text.strip().split()[0])
             availability = item.find('a', attrs={'class': 'add-to-cart'})
             availability = bool('btn-success' in availability.get('class'))
-            descr = item.find('div', attrs={'class': 'product-name'}).text.strip()
+            descr = item.find('div', attrs={'class': 'product-name'})
+
+            for hidden in descr.find_all('small'):
+                hidden.extract()
 
             objects.append({
-                'name': descr,
+                'name': descr.text.strip(),
                 'price': price,
                 'availability': availability,
                 'url': f"https://alphaspel.se{url}"

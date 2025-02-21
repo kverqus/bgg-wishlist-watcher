@@ -8,10 +8,12 @@ from scrapers.base import ScraperBase
 class WebhallenScraper(ScraperBase):
     store_name = 'Webhallen'
 
-    def search(self, game_name: str) -> list:
+    async def search(self, game_name: str) -> list:
         objects = []
         url = f"https://www.webhallen.com/api/productdiscovery/search/{game_name}?page=1&touchpoint=DESKTOP&totalProductCountSet=false&origin=ORGANIC"
-        r = httpx.get(url)
+
+        async with httpx.AsyncClient() as client:
+            r = await client.get(url)
 
         if r.status_code != 200:
             return objects
