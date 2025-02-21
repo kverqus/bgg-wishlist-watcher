@@ -9,10 +9,12 @@ from scrapers.base import ScraperBase
 class SpelexpertenScraper(ScraperBase):
     store_name = 'Spelexperten'
 
-    def search(self, game_name: str) -> list:
+    async def search(self, game_name: str) -> list:
         objects = []
         url = f"https://www.spelexperten.com/cgi-bin/ibutik/AIR_ibutik.fcgi?funk=gor_sokning&AvanceradSokning=N&artnr=&varum=&artgrp=&Sprak_Suffix=SV&term={game_name}"
-        r = httpx.get(url)
+
+        async with httpx.AsyncClient() as client:
+            r = await client.get(url)
 
         if r.status_code != 200:
             return objects
@@ -31,11 +33,12 @@ class SpelexpertenScraper(ScraperBase):
             a = item.find('a')
             url = a['href']
             descr = a['aria-label']
-            price = item.find('span', attrs={'class': 'PT_PrisNormal'})
+            price_wrap = item.find('div', attrs={'class': 'PT_PriceWrap'})
+            price = price_wrap.find('span', attrs={'class': 'PT_PrisKampanj'})
+            price = price if price else price_wrap.find('span', attrs={'class': 'PT_PrisNormal'})
             price = float(price.text.split()[0])
             availability = bool(
                 item.find('div', attrs={'class': 'buy-button'}))
-
             objects.append({
                 'name': descr,
                 'price': price,
