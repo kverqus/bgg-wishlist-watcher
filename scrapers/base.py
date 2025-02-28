@@ -12,14 +12,14 @@ class ScraperBase(ABC):
         """Search for the board game and return price and availability."""
         pass
 
-    async def safe_search(self, wishlist_name: str) -> list:
+    async def safe_search(self, wishlist_name: str, commit: bool = True) -> list:
         """Wrapper to log execution, handle errors, and save results."""
         try:
             logger.info(f"Searching for game: {wishlist_name}")
             result = await self.search(wishlist_name)
             logger.info(f"Search successful: {result}")
 
-            if result:
+            if result and commit:
                 for item in result:
                     save_game_result(wishlist_name, self.store_name,
                                     item['name'], item['price'], item['availability'], item['url'])
