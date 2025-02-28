@@ -11,7 +11,7 @@ async def search(ctx, game_name: str):
     await ctx.send(f"Finding the best price for '{game_name}'")
 
     for name, scraper in scrapers.items():
-        result = await scraper.safe_search(game_name)
+        result = await scraper.safe_search(game_name, commit=False)
         if result:
             results.append(result)
 
