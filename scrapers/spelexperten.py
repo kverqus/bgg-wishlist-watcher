@@ -1,4 +1,5 @@
 import httpx
+import re
 
 from bs4 import BeautifulSoup
 
@@ -36,7 +37,7 @@ class SpelexpertenScraper(ScraperBase):
             price_wrap = item.find('div', attrs={'class': 'PT_PriceWrap'})
             price = price_wrap.find('span', attrs={'class': 'PT_PrisKampanj'})
             price = price if price else price_wrap.find('span', attrs={'class': 'PT_PrisNormal'})
-            price = float(price.text.split()[0])
+            price = float(re.search('\d+', price.text).group())
             availability = bool(
                 item.find('div', attrs={'class': 'buy-button'}))
             objects.append({
