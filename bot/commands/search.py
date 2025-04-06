@@ -20,12 +20,19 @@ async def search(ctx, game_name: str):
         return
 
     flat_result = list(chain.from_iterable(results))
-    sorted_result = sorted(flat_result, key=lambda x: x['price'])
+    sorted_result = sorted(
+        (item for item in flat_result if isinstance(item, dict) and 'price' in item),
+        key=lambda x: x['price'])
     filtered_result = [
         item for item in sorted_result if item.get('availability', False)]
+
+    if not filtered_result:
+        await ctx.send(f"Game '{game_name}' found in {len(sorted_result)} {'store' if len(sorted_result) == 1 else 'stores'}, but is not in stock")
+        return
+    
     max_items = filtered_result[:5]
     out_of = f"Displaying {len(max_items)} out of {len(filtered_result)} results for query '{game_name}'" if max_items < filtered_result else f"Displaying {len(max_items)} results for query '{game_name}'"
-    items = '\n'.join([f"[{r['name']}](<{r['url']}>) - {r['price']}" for r in max_items])
+    items = '\n'.join([f"**[{r['name']}](<{r['url']}>)** for {r['price']} SEK" for r in max_items])
 
     await ctx.send(f"{out_of}\n{items}")
 
