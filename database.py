@@ -66,7 +66,7 @@ def initialize_db() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
+            )
         ''')
 
         # Tables used by Discord bot
@@ -234,6 +234,14 @@ def save_game_result(wishlist_name: str, store_name: str, game_name: str, price:
 
 
 # Functions used by Discord bot
+
+
+def get_all_users():
+    """Fetch all registered users from the database."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT discord_id FROM user")
+        return [row[0] for row in cursor.fetchall()]
 
 
 def add_scraper_to_db(scraper_name: str) -> None:
@@ -404,3 +412,50 @@ def get_user_scrapers(discord_id: str) -> list[str]:
         """, (discord_id,))
 
         return [row[0] for row in cursor.fetchall()]
+
+
+def get_wishlist_games():
+    """Fetch all unique games across all wishlists."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT name FROM wishlist")
+        return [row[0] for row in cursor.fetchall()]
+
+
+def get_previous_prices(game_name, store_id):
+    """Fetch the two most recent prices for a game from a store."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT price, availability, price.timestamp FROM price 
+            JOIN game ON price.game_id = game.id
+            WHERE game.game_name = ? AND game.store_id = ?
+            ORDER BY price.timestamp DESC LIMIT 2
+        """, (game_name, store_id))
+        result = cursor.fetchall()
+        return result if result else None
+
+
+def get_user_wishlist_games(discord_id: int) -> list:
+    """Fetch all wishlist games for a specific user based on their Discord ID."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT
+                wg.wishlist_id,
+                wl.name AS wishlist_game_name,
+                g.id AS scraped_game_id,
+                g.game_name AS scraped_game_name,
+                g.url AS scraped_game_url,
+                s.id AS store_id,
+                s.name AS store_name
+            FROM user u
+            JOIN user_wishlist uw ON u.id = uw.user_id
+            JOIN wishlist_game wg ON uw.wishlist_id = wg.wishlist_id
+            JOIN wishlist wl ON wg.wishlist_id = wl.id
+            JOIN game g ON wg.game_id = g.id
+            JOIN store s ON g.store_id = s.id
+            WHERE u.discord_id = ?
+        """, (discord_id,))
+        results = cursor.fetchall()
+        return results
