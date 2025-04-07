@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 from logging_config import logger
@@ -6,11 +7,11 @@ from wishlist import Wishlist
 from typing import Union
 
 
-DB_NAME = "database.db"
+DB_PATH = os.getenv("DB_PATH", "database.db")
 
 
 def initialize_db() -> None:
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         cursor.execute('''
@@ -103,7 +104,7 @@ def initialize_db() -> None:
 
 
 def add_wishlist_item(game_name: str) -> int:
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute(
             "INSERT OR IGNORE INTO wishlist (name) VALUES (?)", (game_name,))
@@ -113,7 +114,7 @@ def add_wishlist_item(game_name: str) -> int:
 
 
 def get_store_id(store_name: str) -> int:
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         cursor.execute("SELECT id FROM store WHERE NAME = ?", (store_name,))
@@ -129,7 +130,7 @@ def get_store_id(store_name: str) -> int:
 
 
 def get_game_id(store_id: int, game_name: str, url: str) -> int:
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT id FROM game WHERE store_id = ? AND url = ?", (store_id, url))
@@ -145,7 +146,7 @@ def get_game_id(store_id: int, game_name: str, url: str) -> int:
 
 
 def insert_price(game_id: int, price: float, availability: bool) -> None:
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("INSERT INTO price (game_id, price, availability) VALUES (?, ?, ?)",
                        (game_id, price, availability))
@@ -153,7 +154,7 @@ def insert_price(game_id: int, price: float, availability: bool) -> None:
 
 
 def link_wishlist_game(wishlist_id: int, game_id: int) -> None:
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute(
             "INSERT OR IGNORE INTO wishlist_game (wishlist_id, game_id) VALUES (?, ?)", (wishlist_id, game_id))
@@ -166,7 +167,7 @@ def is_price_lower(game_id: int, new_price: float, availability: bool) -> bool:
     if availability != 1:
         return False
 
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         cursor.execute(
@@ -194,7 +195,7 @@ def is_back_in_stock(game_id: int, availability: bool) -> bool:
     if availability != 1:
         return False
 
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -238,7 +239,7 @@ def save_game_result(wishlist_name: str, store_name: str, game_name: str, price:
 
 def get_all_users():
     """Fetch all registered users from the database."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT discord_id FROM user")
         return [row[0] for row in cursor.fetchall()]
@@ -246,7 +247,7 @@ def get_all_users():
 
 def add_scraper_to_db(scraper_name: str) -> None:
     """Ensure the scraper exists in the database."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -262,7 +263,7 @@ def add_scraper_to_db(scraper_name: str) -> None:
 
 def remove_obsolete_scrapers(active_scrapers: set) -> None:
     """Remove scrapers from the database that are no longer available."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM scraper")
         db_scrapers = {row[0] for row in cursor.fetchall()}
@@ -280,7 +281,7 @@ def remove_obsolete_scrapers(active_scrapers: set) -> None:
 
 def register_user(discord_id: str, bgg_username: str) -> bool:
     """Register a Discord user with their BGG username."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         try:
@@ -296,7 +297,7 @@ def register_user(discord_id: str, bgg_username: str) -> bool:
 
 def get_all_users() -> Union[list, None]:
     """Fetch all registered users."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         cursor.execute("SELECT discord_id FROM user")
@@ -308,7 +309,7 @@ def get_all_users() -> Union[list, None]:
 
 def get_user_bgg_username(discord_id: str) -> str:
     """Fetch the BGG username for a given Discord user ID."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         cursor.execute(
@@ -333,7 +334,7 @@ def add_wishlist_to_user(discord_id: str) -> Union[list, None]:
     if not wishlist_games:
         return []
 
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         for game in wishlist_games:
@@ -355,7 +356,7 @@ def add_wishlist_to_user(discord_id: str) -> Union[list, None]:
 
 def get_available_scrapers() -> list[str]:
     """Retrieve a list of all available scrapers from the database."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT DISTINCT name FROM scraper")
 
@@ -364,7 +365,7 @@ def get_available_scrapers() -> list[str]:
 
 def add_scraper_for_user(discord_id: str, scraper_name: str) -> bool:
     """Add a scraper to the user's configured scrapers."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         try:
@@ -382,7 +383,7 @@ def add_scraper_for_user(discord_id: str, scraper_name: str) -> bool:
 
 def disable_scraper_for_user(discord_id: int, scraper_name: str) -> bool:
     """Disable a specific scraper for a user."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         cursor.execute("SELECT id FROM scraper WHERE name = ?",
@@ -403,7 +404,7 @@ def disable_scraper_for_user(discord_id: int, scraper_name: str) -> bool:
 
 def get_user_scrapers(discord_id: str) -> list[str]:
     """Retrieve a list of scrapers configured for the user."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT s.name FROM scraper s
@@ -416,7 +417,7 @@ def get_user_scrapers(discord_id: str) -> list[str]:
 
 def get_wishlist_games():
     """Fetch all unique games across all wishlists."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT DISTINCT name FROM wishlist")
         return [row[0] for row in cursor.fetchall()]
@@ -424,7 +425,7 @@ def get_wishlist_games():
 
 def get_previous_prices(game_name, store_id):
     """Fetch the two most recent prices for a game from a store."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT price, availability, price.timestamp FROM price 
@@ -438,7 +439,7 @@ def get_previous_prices(game_name, store_id):
 
 def get_user_wishlist_games(discord_id: int) -> list:
     """Fetch all wishlist games for a specific user based on their Discord ID."""
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT DISTINCT
