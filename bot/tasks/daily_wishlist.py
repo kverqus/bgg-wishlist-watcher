@@ -50,6 +50,7 @@ async def process_wishlist(bot: discord.ext.commands.Bot, discord_id: int):
             return {k: __remove_empty_entries(v) for k, v in d.items() if __remove_empty_entries(v) != {} and __remove_empty_entries(v) != []}
         return d
 
+    notifications = []
     notification = ''
     result = {'back_in_stock': {}, 'lower_price': {}, 'new': {}}
 
@@ -77,7 +78,7 @@ async def process_wishlist(bot: discord.ext.commands.Bot, discord_id: int):
             }
 
             for i in ['back_in_stock', 'lower_price', 'new']:
-                if not hasattr(result[i], game['wishlist_name']):
+                if not game['wishlist_name'] in result[i]:
                     result[i][game['wishlist_name']] = []
 
             previous_prices = get_previous_prices(game['scraped_name'], game['store_id'])
@@ -95,19 +96,23 @@ async def process_wishlist(bot: discord.ext.commands.Bot, discord_id: int):
                 pass
 
             if not game['prices']['old']['price'] and game['prices']['current']['availability']:
-                result['new'][game['wishlist_name']] = game
+                result['new'][game['wishlist_name']].append(game)
 
             elif game['prices']['current']['availability'] and game['prices']['current']['price'] < game['prices']['old']['price']:
-                result['lower_price'][game['wishlist_name']] = game
+                result['lower_price'][game['wishlist_name']].append(game)
 
             elif game['prices']['current']['availability'] > game['prices']['old']['availability']:
-                result['back_in_stock'][game['wishlist_name']] = game
+                result['back_in_stock'][game['wishlist_name']].append(game)
 
         result = __remove_empty_entries(result)
 
         if not result:
             logger.info(f"No updates for {user}")
             return
+
+        for key in result.keys():
+            for game in result[key]:
+                result[key][game] = min(result[key][game], key=lambda x: x['prices']['current']['price'])
 
         for key in result.keys():
             if key == 'new':
@@ -121,9 +126,18 @@ async def process_wishlist(bot: discord.ext.commands.Bot, discord_id: int):
 
             for k in result[key]:
                 game = result[key][k]
-                notification += f"\n**{game['scraped_name']}**: [{game['store_name']}](<{game['store_url']}>) for {game['prices']['current']['price']} SEK\n-# Updated at {game['prices']['current']['timestamp']}"
+                message = f"\n**{game['scraped_name']}**: [{game['store_name']}](<{game['store_url']}>) for {game['prices']['current']['price']} SEK\n-# Updated at {game['prices']['current']['timestamp']}"
 
-        await user.send(notification)
+                if len(message) + len(notification) >= 2000:
+                    notifications.append(notification)
+                    notification = message
+                else:
+                    notification += message
+
+            notifications.append(notification)
+
+        for notification in notifications:
+            await user.send(notification)
 
     except Exception as e:
         logger.error(f"Error in process_wishlist: {e}")
